@@ -43,8 +43,13 @@ def get_json(url):
     response = ""
     headers = HTTP_HEADER_USER_AGENT
     try:
-        response = requests.get(url, headers=headers).json()
+        r = requests.get(url, headers=headers)
+        if r.status_code >= 400:
+            print('Error in processing %s (Error Code: %s)' % (url, r.status_code))
+        else:
+            response = r.json()
     except Exception as e:
+        print('Error in processing %s' % url)
         print(e)
     return response
 
