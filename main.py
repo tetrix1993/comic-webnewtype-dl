@@ -32,6 +32,9 @@ def process_manga(series, chapter):
                 os.makedirs(save_folder)
             for i in range(len(json_obj)):
                 image_url = PREFIX + json_obj[i]
+                endpos = image_url.rfind('/')-1
+                endpos = image_url.rfind('/', 0, endpos)
+                image_url = image_url[0:endpos]
                 image_name = save_folder + '/' + str(i + 1).zfill(3) + '.jpg'
                 download_image(image_url, image_name)
     except Exception as e:
