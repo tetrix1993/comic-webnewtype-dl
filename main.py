@@ -1,5 +1,6 @@
 import os
 import requests
+from multiprocessing import Pool
 
 
 HTTP_HEADER_USER_AGENT = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) ' +
@@ -8,6 +9,7 @@ HTTP_HEADER_USER_AGENT = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 
 PREFIX = 'https://comic.webnewtype.com'
 JSON_TEMPLATE = 'https://comic.webnewtype.com/contents/%s/%s/json/'
 BASE_FOLDER = 'download'
+MAX_PROCESSES = 30
 
 
 def run():
@@ -30,13 +32,23 @@ def process_manga(series, chapter):
             save_folder = '%s/%s/%s' % (BASE_FOLDER, series, chapter)
             if not os.path.exists(save_folder):
                 os.makedirs(save_folder)
-            for i in range(len(json_obj)):
-                image_url = PREFIX + json_obj[i]
-                endpos = image_url.rfind('/')-1
-                endpos = image_url.rfind('/', 0, endpos)
-                image_url = image_url[0:endpos]
-                image_name = save_folder + '/' + str(i + 1).zfill(3) + '.jpg'
-                download_image(image_url, image_name)
+            if len(json_obj) == 0:
+                print('No images found.')
+                return
+            with Pool(min(len(json_obj), MAX_PROCESSES)) as p:
+                results = []
+                for i in range(len(json_obj)):
+                    image_url = PREFIX + json_obj[i]
+                    endpos = image_url.rfind('/') - 1
+                    endpos = image_url.rfind('/', 0, endpos)
+                    image_url = image_url[0:endpos]
+                    image_name = save_folder + '/' + str(i + 1).zfill(3) + '.jpg'
+                    if os.path.exists(image_name):
+                        continue
+                    result = p.apply_async(download_image, (image_url, image_name))
+                    results.append(result)
+                for result in results:
+                    result.wait()
     except Exception as e:
         print('Error in processing %s' % json_url)
         print(e)
